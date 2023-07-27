@@ -10,7 +10,10 @@ from langchain.llms import OpenAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.callbacks import get_openai_callback
 import os
+import time
 
+st.set_page_config(page_title='AI CV')
+st.title('AI CV')
 
 with st.sidebar:
     st.title('TEST')
@@ -31,44 +34,65 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 load_dotenv()
 
 def main():
+    
     st.header("main window")
-    pdf = st.file_uploader("Upload PDF",type='pdf')
-    if pdf is not None:
-        pdf_reader = PdfReader(pdf)
+    
+    # Create a text input for the question at the end
+    #st.text_input("Enter your question:", key="question", on_change=handle_question_submit)
+    if prompt :=st.chat_input("Enter your question"):
+        with st.chat_message("assistant"):
+            st.markdown(prompt)
+        handle_question_submit(prompt)
+
+def handle_question_submit(question):
+    
+    data,store_name=get_pdf_data()
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len,
+    )
+    chunks = text_splitter.split_text(text=data)
+    
+
+    if os.path.exists(f"{store_name}.pkl"):
+        with open(f"{store_name}.pkl", "rb") as f:
+            VectorStore = pickle.load(f)
+    else:
+        embeddings = OpenAIEmbeddings()
+        VectorStore = FAISS.from_texts(chunks,embedding=embeddings)
+        
+        with open(f"{store_name}.pkl", "wb") as f:
+            pickle.dump(VectorStore, f)
+
+    docs = VectorStore.similarity_search(query=question, k=3)
+    llm = OpenAI()
+    chain = load_qa_chain(llm=llm, chain_type="stuff")
+    with get_openai_callback() as cb:
+        response = chain.run(input_documents=docs, question=question)
+        print(cb)
+    
+    
+    
+    answer = f"{response}"
+    with st.chat_message("user"):
+        st.write("Hello User 👋")
+        st.markdown(answer)
+
+    
+        
+
+        
+def get_pdf_data():
+    with open("Sanjin Dedic Resume.pdf", "rb") as f:
+        store_name = f.name[:-4]
+        pdf_reader = PdfReader(f)
         data=""
         for page in pdf_reader.pages:
             data += page.extract_text()
 
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-        )
-        chunks = text_splitter.split_text(text=data)
-        store_name = pdf.name[:-4]
-
-        if os.path.exists(f"{store_name}.pkl"):
-            with open(f"{store_name}.pkl", "rb") as f:
-                VectorStore = pickle.load(f)
-        else:
-            embeddings = OpenAIEmbeddings()
-            VectorStore = FAISS.from_texts(chunks,embedding=embeddings)
-            
-            with open(f"{store_name}.pkl", "wb") as f:
-                pickle.dump(VectorStore, f)
-
-        query = st.text_input("Ask Question:")
-        if query:
-            docs = VectorStore.similarity_search(query=query,k=3)
-            llm = OpenAI()
-            chain = load_qa_chain(llm=llm, chain_type="stuff")
-            with get_openai_callback() as cb:
-                response = chain.run(input_documents=docs,question=query)
-            st.write(response)
-
-
-        
-
+    return data,store_name
 
 if __name__=="__main__":
     main()

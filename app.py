@@ -36,12 +36,14 @@ load_dotenv()
 def main():
     
     st.header("main window")
-    
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
     # Create a text input for the question at the end
-    #st.text_input("Enter your question:", key="question", on_change=handle_question_submit)
     if prompt :=st.chat_input("Enter your question"):
         with st.chat_message("assistant"):
             st.markdown(prompt)
+        st.session_state.messages.append({"role": "assistant", "content": prompt})
         handle_question_submit(prompt)
 
 def handle_question_submit(question):
@@ -78,7 +80,16 @@ def handle_question_submit(question):
     answer = f"{response}"
     with st.chat_message("user"):
         st.write("Hello User 👋")
-        st.markdown(answer)
+        message_placeholder = st.empty()
+        full_response=""
+        for chunk in answer.split():
+            full_response += chunk + " "
+            time.sleep(0.05)
+            # Add a blinking cursor to simulate typing
+            message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+
+    st.session_state.messages.append({"role": "user", "content": answer})
 
     
         

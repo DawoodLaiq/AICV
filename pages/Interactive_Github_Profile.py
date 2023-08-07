@@ -65,12 +65,12 @@ def get_github_data():
 
 json_data = get_github_data()
 repos = json_data["data"]["user"]["repositories"]["nodes"]
-
-for repo in repos:
-    # Check if readme key exists and is not null
-    
-    if repo["readme"] and repo["readme"]["text"]:
-        #st.header(f"Repository Name: {repo['name']}")
-        st.markdown(repo['readme']['text'])
-        st.divider()
-        st.divider()
+with st.expander("See all readme of the projects"):
+    for repo in repos:
+        # Check if readme key exists and is not null
+        
+        if repo["readme"] and repo["readme"]["text"]:
+            #st.header(f"Repository Name: {repo['name']}")
+            st.markdown(repo['readme']['text'])
+            st.divider()
+            st.divider()

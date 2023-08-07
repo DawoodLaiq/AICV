@@ -2,6 +2,8 @@ import streamlit as st
 from PIL import Image
 import fitz
 from streamlit_extras.add_vertical_space import add_vertical_space
+from chatbot import Chatbot
+
 st.set_page_config(page_title='AI CV',layout="wide")
 
 with st.sidebar:
@@ -24,6 +26,7 @@ container = st.container()
 col1,col2 = container.columns(2)
 c1,c2,c3 = col1.columns(3)
 cd1,cd2,cd3 = col2.columns([1,1,1])
+chatcontainer = st.container()
 with fitz.open("Sanjin Dedic Resume.pdf") as doc:
     max_pages = len(doc)
     session_state = st.session_state
@@ -49,3 +52,12 @@ with open("Sanjin Dedic Resume.pdf", "rb") as f:
 
 with open("Sanjin Dedic Resume.pdf", "rb") as f:
     cd2.download_button('Download 10 page resume', f,f.name+".pdf")
+
+chatbot = Chatbot(chatcontainer, st)
+
+# Create a text input for the question at the end
+if prompt := chatcontainer.chat_input("Enter your question"):
+    with chatcontainer.chat_message("assistant"):
+        chatcontainer.markdown(prompt)
+    st.session_state.messages.append({"role": "assistant", "content": prompt})
+    chatbot.handle_question_submit(prompt)
